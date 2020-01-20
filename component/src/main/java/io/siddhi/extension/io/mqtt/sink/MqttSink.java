@@ -134,7 +134,14 @@ import java.io.UnsupportedEncodingException;
                                 "to connect to the MQTT broker. Once this time interval elapses, a timeout takes " +
                                 "place.",
                         type = {DataType.INT},
-                        optional = true, defaultValue = "30")
+                        optional = true, defaultValue = "30"),
+                @Parameter(
+                        name = "max.inflight",
+                        description = "Maximum number of messages that can be in sending status without receiving " +
+                            "an acknowledgement, when `quality.of.service` is > 0. This value should be increased " +
+                            "in a high traffic environment.",
+                        type = {DataType.INT},
+                        optional = true, defaultValue = "10"),
 
         },
         examples =
@@ -164,6 +171,7 @@ public class MqttSink extends Sink {
     private boolean cleanSession;
     private int keepAlive;
     private int connectionTimeout;
+    private int maxInflight;
     private MqttClient client;
     private Option messageRetainOption;
     private StreamDefinition streamDefinition;
@@ -191,6 +199,8 @@ public class MqttSink extends Sink {
                 MqttConstants.DEFAULT_MESSAGE_RETAIN);
         this.cleanSession = Boolean.parseBoolean(optionHolder.validateAndGetStaticValue
                     (MqttConstants.CLEAN_SESSION, MqttConstants.DEFAULT_CLEAN_SESSION));
+        this.maxInflight = Integer.parseInt(optionHolder.validateAndGetStaticValue(
+            MqttConstants.MAX_INFLIGHT, String.valueOf(MqttConnectOptions.MAX_INFLIGHT_DEFAULT)));
         return null;
     }
 
@@ -224,6 +234,7 @@ public class MqttSink extends Sink {
             connectionOptions.setCleanSession(cleanSession);
             connectionOptions.setKeepAliveInterval(keepAlive);
             connectionOptions.setConnectionTimeout(connectionTimeout);
+            connectionOptions.setMaxInflight(maxInflight);
             client.connect(connectionOptions);
 
         } catch (MqttException e) {
